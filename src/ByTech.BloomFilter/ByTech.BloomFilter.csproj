@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ByTech.BloomFilter</RootNamespace>
+    <Version>1.0.0</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <PackageId>ByTech.BloomFilter</PackageId>
+    <Description>High-performance Bloom filter for .NET 10. Zero-allocation hot path, span-first API, XxHash128 double-hashing, packed ulong[] storage, versioned binary serialization with CRC32 integrity.</Description>
+    <PackageTags>bloom-filter;probabilistic;data-structure;hashing;performance;membership-test</PackageTags>
+    <PackageReadmeFile>README.MD</PackageReadmeFile>
+    <PackageReleaseNotes>v1.0.0 — Initial release. Core BloomFilter with Add/MayContain, parameter calculator, binary serialization, diagnostics.</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" Version="9.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ByTech.BloomFilter.Tests" />
+    <InternalsVisibleTo Include="ByTech.BloomFilter.FuzzTests" />
+    <InternalsVisibleTo Include="ByTech.BloomFilter.Benchmarks" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.MD" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/ByTech.BloomFilter.Benchmarks/ByTech.BloomFilter.Benchmarks.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/ByTech.BloomFilter/ByTech.BloomFilter.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ByTech.BloomFilter.FuzzTests/ByTech.BloomFilter.FuzzTests.csproj" />
+    <Project Path="tests/ByTech.BloomFilter.Tests/ByTech.BloomFilter.Tests.csproj" />
+  </Folder>
+</Solution>

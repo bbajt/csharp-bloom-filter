@@ -1,0 +1,14 @@
+* text=auto
+*.cs text diff=csharp
+*.csproj text
+*.sln text
+*.slnx text
+*.md text
+*.ps1 text
+*.json text
+*.yaml text
+*.yml text
+*.xml text
+*.editorconfig text
+*.props text
+*.targets text
