@@ -84,6 +84,8 @@ public sealed class BloomFilter
         {
             _store.SetBit(positions[i]);
         }
+
+        BloomFilterEventSource.Instance.ItemAdded();
     }
 
     /// <summary>
@@ -99,6 +101,8 @@ public sealed class BloomFilter
         var k = HashFunctionCount;
         Span<long> positions = stackalloc long[k];
         PositionDeriver.Derive(h1, h2, BitCount, positions, k);
+
+        BloomFilterEventSource.Instance.QueryPerformed();
 
         for (var i = 0; i < k; i++)
         {
@@ -152,6 +156,8 @@ public sealed class BloomFilter
         var bitsSet = _store.PopCount();
         var fillRatio = BitCount > 0 ? (double)bitsSet / BitCount : 0.0;
         var estimatedCurrentFpr = Math.Pow(fillRatio, HashFunctionCount);
+
+        BloomFilterEventSource.Instance.ReportFalsePositiveEstimate(estimatedCurrentFpr);
 
         return new BloomFilterSnapshot
         {

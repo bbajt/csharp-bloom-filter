@@ -2,14 +2,14 @@
 
   <PropertyGroup>
     <RootNamespace>ByTech.BloomFilter</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
     <PackageId>ByTech.BloomFilter</PackageId>
     <Description>High-performance Bloom filter for .NET 10. Zero-allocation hot path, span-first API, XxHash128 double-hashing, packed ulong[] storage, versioned binary serialization with CRC32 integrity.</Description>
     <PackageTags>bloom-filter;probabilistic;data-structure;hashing;performance;membership-test</PackageTags>
     <PackageReadmeFile>README.MD</PackageReadmeFile>
-    <PackageReleaseNotes>v1.0.0 — Initial release. Core BloomFilter with Add/MayContain, parameter calculator, binary serialization, diagnostics.</PackageReleaseNotes>
+    <PackageReleaseNotes>v1.1.0 — Thread-safe filter (lock-free Interlocked.Or), counting Bloom filter with deletion, generic T extensions, ETW EventSource telemetry.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

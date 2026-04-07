@@ -69,14 +69,31 @@ public sealed class BloomFilterBuilder
     /// <exception cref="ArgumentException">When computed parameters exceed supported limits.</exception>
     public BloomFilter Build()
     {
+        var parameters = ComputeParameters();
+        return new BloomFilter(parameters);
+    }
+
+    /// <summary>
+    /// Validates all options, computes optimal parameters, and constructs a thread-safe Bloom filter
+    /// using lock-free atomic bit operations.
+    /// </summary>
+    /// <returns>A ready-to-use <see cref="ThreadSafeBloomFilter"/> instance.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">When options are invalid.</exception>
+    /// <exception cref="ArgumentException">When computed parameters exceed supported limits.</exception>
+    public ThreadSafeBloomFilter BuildThreadSafe()
+    {
+        var parameters = ComputeParameters();
+        return new ThreadSafeBloomFilter(parameters);
+    }
+
+    private BloomFilterParameters ComputeParameters()
+    {
         var options = new BloomFilterOptions(
             _expectedInsertions,
             _falsePositiveRate,
             _maxBitCount,
             _maxHashFunctions);
 
-        var parameters = BloomFilterCalculator.Compute(options);
-
-        return new BloomFilter(parameters);
+        return BloomFilterCalculator.Compute(options);
     }
 }
