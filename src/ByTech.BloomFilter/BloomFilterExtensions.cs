@@ -1,7 +1,10 @@
+using System.Text;
+
 namespace ByTech.BloomFilter;
 
 /// <summary>
 /// Extension methods for adding and querying typed keys via <see cref="IBloomFilterKeySerializer{T}"/>.
+/// Also provides batch string and generic overloads.
 /// </summary>
 public static class BloomFilterExtensions
 {
@@ -14,7 +17,7 @@ public static class BloomFilterExtensions
     /// <param name="filter">The Bloom filter.</param>
     /// <param name="value">The key to add.</param>
     /// <param name="serializer">Serializer that converts <typeparamref name="T"/> to bytes.</param>
-    public static void Add<T>(this BloomFilter filter, T value, IBloomFilterKeySerializer<T> serializer)
+    public static void Add<T>(this IBloomFilter filter, T value, IBloomFilterKeySerializer<T> serializer)
     {
         var maxBytes = serializer.GetMaxByteCount(value);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
@@ -48,7 +51,7 @@ public static class BloomFilterExtensions
     /// <param name="value">The key to test.</param>
     /// <param name="serializer">Serializer that converts <typeparamref name="T"/> to bytes.</param>
     /// <returns><c>true</c> if possibly present; <c>false</c> if definitely absent.</returns>
-    public static bool MayContain<T>(this BloomFilter filter, T value, IBloomFilterKeySerializer<T> serializer)
+    public static bool MayContain<T>(this IBloomFilter filter, T value, IBloomFilterKeySerializer<T> serializer)
     {
         var maxBytes = serializer.GetMaxByteCount(value);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
@@ -75,60 +78,84 @@ public static class BloomFilterExtensions
     }
 
     /// <summary>
-    /// Adds a typed key to the thread-safe filter using the provided serializer.
+    /// Adds multiple string items to the filter (UTF-8 encoded).
     /// </summary>
-    public static void Add<T>(this ThreadSafeBloomFilter filter, T value, IBloomFilterKeySerializer<T> serializer)
+    /// <param name="filter">The Bloom filter.</param>
+    /// <param name="values">The strings to add.</param>
+    public static void AddRange(this IBloomFilter filter, IEnumerable<string> values)
     {
-        var maxBytes = serializer.GetMaxByteCount(value);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
-
-        if (maxBytes <= StackAllocThreshold)
+        ArgumentNullException.ThrowIfNull(values);
+        foreach (var value in values)
         {
-            Span<byte> buffer = stackalloc byte[maxBytes];
-            var written = serializer.Serialize(value, buffer);
-            filter.Add(buffer[..written]);
-        }
-        else
-        {
-            var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(maxBytes);
-            try
-            {
-                var written = serializer.Serialize(value, buffer);
-                filter.Add(buffer.AsSpan(0, written));
-            }
-            finally
-            {
-                System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-            }
+            filter.Add(value);
         }
     }
 
     /// <summary>
-    /// Tests whether a typed key may have been added to the thread-safe filter.
+    /// Tests whether all string items may have been added. Short-circuits on first definite absence.
     /// </summary>
-    public static bool MayContain<T>(this ThreadSafeBloomFilter filter, T value, IBloomFilterKeySerializer<T> serializer)
+    public static bool ContainsAll(this IBloomFilter filter, IEnumerable<string> values)
     {
-        var maxBytes = serializer.GetMaxByteCount(value);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
+        ArgumentNullException.ThrowIfNull(values);
+        foreach (var value in values)
+        {
+            if (!filter.MayContain(value))
+                return false;
+        }
+        return true;
+    }
 
-        if (maxBytes <= StackAllocThreshold)
+    /// <summary>
+    /// Tests whether at least one string item may have been added. Short-circuits on first possible match.
+    /// </summary>
+    public static bool ContainsAny(this IBloomFilter filter, IEnumerable<string> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        foreach (var value in values)
         {
-            Span<byte> buffer = stackalloc byte[maxBytes];
-            var written = serializer.Serialize(value, buffer);
-            return filter.MayContain(buffer[..written]);
+            if (filter.MayContain(value))
+                return true;
         }
-        else
+        return false;
+    }
+
+    /// <summary>
+    /// Adds multiple typed keys to the filter using the provided serializer.
+    /// </summary>
+    public static void AddRange<T>(this IBloomFilter filter, IEnumerable<T> values, IBloomFilterKeySerializer<T> serializer)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        foreach (var value in values)
         {
-            var buffer = System.Buffers.ArrayPool<byte>.Shared.Rent(maxBytes);
-            try
-            {
-                var written = serializer.Serialize(value, buffer);
-                return filter.MayContain(buffer.AsSpan(0, written));
-            }
-            finally
-            {
-                System.Buffers.ArrayPool<byte>.Shared.Return(buffer);
-            }
+            filter.Add(value, serializer);
         }
+    }
+
+    /// <summary>
+    /// Tests whether all typed keys may have been added.
+    /// </summary>
+    public static bool ContainsAll<T>(this IBloomFilter filter, IEnumerable<T> values, IBloomFilterKeySerializer<T> serializer)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        foreach (var value in values)
+        {
+            if (!filter.MayContain(value, serializer))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Tests whether at least one typed key may have been added.
+    /// </summary>
+    public static bool ContainsAny<T>(this IBloomFilter filter, IEnumerable<T> values, IBloomFilterKeySerializer<T> serializer)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        foreach (var value in values)
+        {
+            if (filter.MayContain(value, serializer))
+                return true;
+        }
+        return false;
     }
 }

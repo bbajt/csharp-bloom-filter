@@ -3,10 +3,10 @@
 [![NuGet](https://img.shields.io/nuget/v/ByTech.BloomFilter.svg?label=nuget&color=blue)](https://www.nuget.org/packages/ByTech.BloomFilter)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ByTech.BloomFilter.svg?color=blue)](https://www.nuget.org/packages/ByTech.BloomFilter)
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4)](#)
-[![Tests](https://img.shields.io/badge/tests-150-brightgreen)](#)
+[![Tests](https://img.shields.io/badge/tests-213-brightgreen)](#)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE.MD)
 
-A high-performance, benchmark-driven **Bloom filter** library for .NET 10. Zero-allocation hot path, span-first API, versioned binary serialization, thread-safe variant, counting filter with deletion, and strong statistical validation.
+A high-performance, benchmark-driven **Bloom filter** library for .NET 10. Zero-allocation hot path, span-first API, versioned binary serialization, thread-safe variant, counting filter with deletion, batch operations, named filter factory, DI integration, and strong statistical validation.
 
 ---
 
@@ -55,6 +55,24 @@ counting.Add("item"u8);
 counting.MayContain("item"u8);  // true
 counting.Remove("item"u8);      // true (decremented)
 counting.MayContain("item"u8);  // false
+
+// Batch operations (works on any IBloomFilter)
+IBloomFilter bf = filter;
+bf.AddRange(new[] { "a"u8.ToArray(), "b"u8.ToArray() }
+    .Select(x => (ReadOnlyMemory<byte>)x).ToArray());
+bf.ContainsAll(...);  // all present?
+bf.ContainsAny(...);  // any present?
+
+// DI integration (separate package: ByTech.BloomFilter.DependencyInjection)
+services.AddBloomFilter(bf =>
+{
+    bf.AddFilter("users", b => b.WithExpectedInsertions(1_000_000).WithFalsePositiveRate(0.01));
+    bf.AddThreadSafeFilter("sessions", b => b.WithExpectedInsertions(500_000).WithFalsePositiveRate(0.001));
+});
+
+// Resolve via factory
+var factory = serviceProvider.GetRequiredService<IBloomFilterFactory>();
+var usersFilter = factory.Get("users");
 ```
 
 ---
@@ -65,6 +83,10 @@ counting.MayContain("item"u8);  // false
 - **Span-first API** — primary path is `ReadOnlySpan<byte>`; string and byte[] overloads delegate to it
 - **Thread-safe variant** — `ThreadSafeBloomFilter` with lock-free `Interlocked.Or` for concurrent adds
 - **Counting Bloom filter** — `CountingBloomFilter` with 4-bit counters supporting Add/Remove/MayContain
+- **IBloomFilter interface** — common surface for all filter types; polymorphic usage via factory or DI
+- **Batch operations** — `AddRange`, `ContainsAll`, `ContainsAny` on all filter types + string/generic extensions
+- **Named filter factory** — `IBloomFilterFactory` / `BloomFilterFactory` for managing multiple named filters
+- **DI integration** — `ByTech.BloomFilter.DependencyInjection` package with `AddBloomFilter()` for `IServiceCollection`
 - **Generic T support** — `IBloomFilterKeySerializer<T>` + extension methods for typed keys
 - **Double-hashing position derivation** — XxHash128 split into h1/h2, generating `k` positions in O(1)
 - **Packed `ulong[]` bit storage** — 64-bit word operations for high throughput
@@ -119,6 +141,53 @@ filter.MayContain("item"u8);  // false
 
 // 4-bit counters, saturate at 15 (sticky — prevents overflow-induced false negatives)
 // Uses 4x memory of standard filter
+```
+
+### Batch operations
+
+```csharp
+// Available on all filter types via IBloomFilter
+IBloomFilter filter = BloomFilterBuilder
+    .ForExpectedInsertions(100_000)
+    .WithFalsePositiveRate(0.01)
+    .Build();
+
+// Byte-based batch
+var items = new ReadOnlyMemory<byte>[] { "a"u8.ToArray(), "b"u8.ToArray(), "c"u8.ToArray() };
+filter.AddRange(items);
+filter.ContainsAll(items);  // true — all present
+filter.ContainsAny(items);  // true — at least one present
+
+// String batch (extension methods)
+filter.AddRange(new[] { "hello", "world" });
+filter.ContainsAll(new[] { "hello", "world" });  // true
+```
+
+### Named filter factory
+
+```csharp
+var factory = new BloomFilterFactory();
+factory.Register("users", BloomFilterBuilder.ForExpectedInsertions(1_000_000).WithFalsePositiveRate(0.01).Build());
+factory.Register("sessions", BloomFilterBuilder.ForExpectedInsertions(500_000).WithFalsePositiveRate(0.001).BuildThreadSafe());
+
+var usersFilter = factory.Get("users");
+factory.TryGet("missing", out var f);  // false
+```
+
+### DI integration
+
+```csharp
+// Package: ByTech.BloomFilter.DependencyInjection
+services.AddBloomFilter(bf =>
+{
+    bf.AddFilter("users", b => b.WithExpectedInsertions(1_000_000).WithFalsePositiveRate(0.01));
+    bf.AddThreadSafeFilter("sessions", b => b.WithExpectedInsertions(500_000).WithFalsePositiveRate(0.001));
+    bf.AddCountingFilter("temp-keys", b => b.WithExpectedInsertions(10_000).WithFalsePositiveRate(0.05));
+});
+
+// Resolve anywhere via IBloomFilterFactory
+var factory = serviceProvider.GetRequiredService<IBloomFilterFactory>();
+var filter = factory.Get("users");
 ```
 
 ### Generic T via serializer
@@ -242,20 +311,21 @@ Zero overhead when no listener is attached.
 ## Project structure
 
 ```
-ByTech.BloomFilter.sln
+ByTech.BloomFilter.slnx
 ├── src/
-│   └── ByTech.BloomFilter/              # Core library
-│       ├── Configuration/                # Parameter planning, validation
-│       ├── Hashing/                      # XxHash128 double-hashing
-│       ├── Storage/                      # BitStore, ConcurrentBitStore, CountingBitStore
-│       ├── Serialization/                # Versioned binary format with CRC32
-│       └── Diagnostics/                  # Snapshot, EventSource
+│   ├── ByTech.BloomFilter/                          # Core library
+│   │   ├── Configuration/                           # Parameter planning, validation
+│   │   ├── Hashing/                                 # XxHash128 double-hashing
+│   │   ├── Storage/                                 # BitStore, ConcurrentBitStore, CountingBitStore
+│   │   ├── Serialization/                           # Versioned binary format with CRC32
+│   │   └── Diagnostics/                             # Snapshot, EventSource
+│   └── ByTech.BloomFilter.DependencyInjection/      # DI integration package
 ├── tests/
-│   ├── ByTech.BloomFilter.Tests/         # Unit, integration, statistical, concurrent
-│   └── ByTech.BloomFilter.FuzzTests/     # Fuzz testing
+│   ├── ByTech.BloomFilter.Tests/                    # Unit, integration, statistical, DI
+│   └── ByTech.BloomFilter.FuzzTests/                # Fuzz testing
 ├── benchmarks/
-│   └── ByTech.BloomFilter.Benchmarks/    # BenchmarkDotNet suite
-└── .docs/                                # Project documentation
+│   └── ByTech.BloomFilter.Benchmarks/               # BenchmarkDotNet suite (5 classes)
+└── .docs/                                           # Project documentation
 ```
 
 ---
@@ -272,7 +342,7 @@ ByTech.BloomFilter.sln
 
 ## Version
 
-Current: **v1.1.0**
+Current: **v1.2.0**
 
 ---
 

@@ -15,7 +15,7 @@ namespace ByTech.BloomFilter;
 /// This type is not thread-safe. Callers must provide external synchronization
 /// if the filter is shared across threads.
 /// </remarks>
-public sealed class BloomFilter
+public sealed class BloomFilter : IBloomFilter
 {
     /// <summary>Maximum string byte length for stack allocation. Longer strings use a rented array.</summary>
     private const int StackAllocThreshold = 512;
@@ -137,6 +137,47 @@ public sealed class BloomFilter
     {
         ArgumentNullException.ThrowIfNull(value);
         return AddOrQuery(value, add: false);
+    }
+
+    /// <summary>
+    /// Adds multiple items to the filter.
+    /// </summary>
+    /// <param name="items">The items to add.</param>
+    public void AddRange(ReadOnlyMemory<byte>[] items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            Add(item.Span);
+        }
+    }
+
+    /// <summary>
+    /// Tests whether all items may have been added. Short-circuits on first definite absence.
+    /// </summary>
+    public bool ContainsAll(ReadOnlyMemory<byte>[] items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            if (!MayContain(item.Span))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Tests whether at least one item may have been added. Short-circuits on first possible match.
+    /// </summary>
+    public bool ContainsAny(ReadOnlyMemory<byte>[] items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            if (MayContain(item.Span))
+                return true;
+        }
+        return false;
     }
 
     /// <summary>

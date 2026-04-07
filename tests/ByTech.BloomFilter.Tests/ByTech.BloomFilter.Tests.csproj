@@ -13,10 +13,12 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="6.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ByTech.BloomFilter\ByTech.BloomFilter.csproj" />
+    <ProjectReference Include="..\..\src\ByTech.BloomFilter.DependencyInjection\ByTech.BloomFilter.DependencyInjection.csproj" />
   </ItemGroup>
 
 </Project>

@@ -16,7 +16,7 @@ namespace ByTech.BloomFilter;
 /// <para>Concurrent <c>Add</c> + <c>MayContain</c> is safe (monotonic bit-setting).</para>
 /// <para><c>Clear</c> acquires an exclusive write lock — blocks all other operations.</para>
 /// </remarks>
-public sealed class ThreadSafeBloomFilter : IDisposable
+public sealed class ThreadSafeBloomFilter : IBloomFilter, IDisposable
 {
     private const int StackAllocThreshold = 512;
 
@@ -133,6 +133,49 @@ public sealed class ThreadSafeBloomFilter : IDisposable
     {
         ArgumentNullException.ThrowIfNull(value);
         return WithUtf8(value, static (span, self) => self.MayContain(span));
+    }
+
+    /// <summary>
+    /// Adds multiple items to the filter. Each item is added under a read lock.
+    /// </summary>
+    public void AddRange(ReadOnlyMemory<byte>[] items)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            Add(item.Span);
+        }
+    }
+
+    /// <summary>
+    /// Tests whether all items may have been added. Short-circuits on first definite absence.
+    /// </summary>
+    public bool ContainsAll(ReadOnlyMemory<byte>[] items)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            if (!MayContain(item.Span))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Tests whether at least one item may have been added. Short-circuits on first possible match.
+    /// </summary>
+    public bool ContainsAny(ReadOnlyMemory<byte>[] items)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            if (MayContain(item.Span))
+                return true;
+        }
+        return false;
     }
 
     /// <summary>

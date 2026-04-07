@@ -15,7 +15,7 @@ namespace ByTech.BloomFilter;
 /// <para>Counters saturate at 15 — items hashing to saturated positions cannot be removed.</para>
 /// <para>This type is not thread-safe.</para>
 /// </remarks>
-public sealed class CountingBloomFilter
+public sealed class CountingBloomFilter : IBloomFilter
 {
     private const int StackAllocThreshold = 512;
 
@@ -29,6 +29,9 @@ public sealed class CountingBloomFilter
 
     /// <summary>Total number of counter positions in the filter.</summary>
     public long PositionCount { get; }
+
+    /// <summary>Total number of bit positions (alias for <see cref="PositionCount"/>, satisfies <see cref="IBloomFilter"/>).</summary>
+    public long BitCount => PositionCount;
 
     /// <summary>Number of hash functions (positions per insertion).</summary>
     public int HashFunctionCount { get; }
@@ -115,6 +118,46 @@ public sealed class CountingBloomFilter
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Adds multiple items to the filter.
+    /// </summary>
+    public void AddRange(ReadOnlyMemory<byte>[] items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            Add(item.Span);
+        }
+    }
+
+    /// <summary>
+    /// Tests whether all items may have been added. Short-circuits on first definite absence.
+    /// </summary>
+    public bool ContainsAll(ReadOnlyMemory<byte>[] items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            if (!MayContain(item.Span))
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Tests whether at least one item may have been added. Short-circuits on first possible match.
+    /// </summary>
+    public bool ContainsAny(ReadOnlyMemory<byte>[] items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        foreach (var item in items)
+        {
+            if (MayContain(item.Span))
+                return true;
+        }
+        return false;
     }
 
     /// <summary>Adds a string item (UTF-8 encoded).</summary>

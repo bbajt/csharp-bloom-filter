@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>ByTech.BloomFilter.DependencyInjection</RootNamespace>
+    <Version>1.2.0</Version>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>true</IsPackable>
+    <PackageId>ByTech.BloomFilter.DependencyInjection</PackageId>
+    <Description>Microsoft.Extensions.DependencyInjection integration for ByTech.BloomFilter. Register named Bloom filters via AddBloomFilter() and resolve them through IBloomFilterFactory.</Description>
+    <PackageTags>bloom-filter;dependency-injection;di;aspnet-core;microsoft-extensions</PackageTags>
+    <PackageReadmeFile>README.MD</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ByTech.BloomFilter\ByTech.BloomFilter.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.MD" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

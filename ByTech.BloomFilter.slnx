@@ -4,6 +4,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/ByTech.BloomFilter/ByTech.BloomFilter.csproj" />
+    <Project Path="src/ByTech.BloomFilter.DependencyInjection/ByTech.BloomFilter.DependencyInjection.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ByTech.BloomFilter.FuzzTests/ByTech.BloomFilter.FuzzTests.csproj" />

@@ -185,4 +185,70 @@ public class ThreadSafeBloomFilterTests
             filter.MayContain(verifyKey).Should().BeTrue($"item {i} not found after concurrent add");
         }
     }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Disposed_filter_Add_throws()
+    {
+        var filter = CreateFilter();
+        filter.Dispose();
+
+        var act = () => filter.Add("hello"u8);
+        act.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Disposed_filter_MayContain_throws()
+    {
+        var filter = CreateFilter();
+        filter.Dispose();
+
+        var act = () => filter.MayContain("hello"u8);
+        act.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Disposed_filter_AddRange_throws()
+    {
+        var filter = CreateFilter();
+        filter.Dispose();
+
+        var act = () => filter.AddRange(new ReadOnlyMemory<byte>[] { new byte[] { 1, 2 } });
+        act.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Disposed_filter_ContainsAll_throws()
+    {
+        var filter = CreateFilter();
+        filter.Dispose();
+
+        var act = () => filter.ContainsAll(new ReadOnlyMemory<byte>[] { new byte[] { 1, 2 } });
+        act.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Disposed_filter_ContainsAny_throws()
+    {
+        var filter = CreateFilter();
+        filter.Dispose();
+
+        var act = () => filter.ContainsAny(new ReadOnlyMemory<byte>[] { new byte[] { 1, 2 } });
+        act.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    [Trait("Category", "Unit")]
+    public void Disposed_filter_Clear_throws()
+    {
+        var filter = CreateFilter();
+        filter.Dispose();
+
+        var act = () => filter.Clear();
+        act.Should().Throw<ObjectDisposedException>();
+    }
 }
